@@ -1,0 +1,77 @@
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+}
+
+apply plugin: 'kotlin-kapt'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-kapt'
+
+android {
+    def globalConfiguration = rootProject.extensions.getByName("ext")
+
+    compileSdkVersion globalConfiguration["androidCompileSdkVersion"]
+    buildToolsVersion "30.0.3"
+
+    defaultConfig {
+        applicationId "com.example.beerappkoltin"
+        minSdkVersion globalConfiguration["androidMinSdkVersion"]
+        targetSdkVersion globalConfiguration["androidTargetSdkVersion"]
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    buildFeatures {
+        dataBinding = true
+        viewBinding = true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+}
+
+dependencies {
+    def appDependencies = rootProject.ext.appDependencies
+
+    implementation appDependencies.androidxCoreKtx
+    implementation appDependencies.appcompat
+
+    implementation appDependencies.androidMaterial
+    implementation appDependencies.constraintlayout
+    implementation appDependencies.cardView
+    implementation appDependencies.recyclerview
+
+    // Test
+    androidTestImplementation appDependencies.junit
+    androidTestImplementation appDependencies.espressoCore
+
+    // Koin
+    implementation appDependencies.koinCore
+    implementation appDependencies.koinViewModel
+
+    // Retrofit
+    implementation appDependencies.retrofit
+    implementation appDependencies.retrofitJsonConverter
+
+    implementation appDependencies.kotlin
+    implementation appDependencies.coroutineCore
+    implementation appDependencies.coroutineAndroid
+    implementation appDependencies.glide
+    implementation appDependencies.lifecycleLiveData
+
+}

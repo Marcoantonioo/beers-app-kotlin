@@ -1,0 +1,2 @@
+rootProject.name = "BeerAppKoltin"
+include ':app'
