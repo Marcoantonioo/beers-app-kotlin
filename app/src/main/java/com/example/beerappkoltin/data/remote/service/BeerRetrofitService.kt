@@ -8,6 +8,10 @@ interface BeerRetrofitService {
     @GET("beers")
     suspend fun loadAllPaged(
         @Query(value = "page") page: Int,
-        @Query(value = "per_page") per_page: Int = 20
+        @Query(value = "per_page") per_page: Int = PER_PAGE
     ): List<BeerRemote>
+
+    companion object {
+        const val PER_PAGE = 20
+    }
 }

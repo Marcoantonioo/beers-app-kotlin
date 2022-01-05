@@ -1,6 +1,5 @@
 package com.example.beerappkoltin.presentation.ui.beerList
 
-import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -9,7 +8,6 @@ import com.example.beerappkoltin.domain.model.BeerDomain
 import com.example.beerappkoltin.domain.usecase.LoadAllBeerParams
 import com.example.beerappkoltin.domain.usecase.LoadAllPagedBeerUseCase
 import com.example.beerappkoltin.presentation.model.BeerView
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
@@ -20,15 +18,11 @@ class BeerListViewModel(
 ) : ViewModel() {
 
     var currentPage = INITIAL_PAGE
-
     var liveData: MutableLiveData<Result<List<BeerView>>> = MutableLiveData()
-
     var mainList = mutableListOf<BeerView>()
 
     fun loadMore() {
         viewModelScope.launch {
-            // para demorar um pouquinho hehe
-            delay(DELAY)
             currentPage += PLUS_ONE
             beerUseCase.execute(LoadAllBeerParams(page = currentPage))
                 .onStart {
@@ -42,6 +36,7 @@ class BeerListViewModel(
     }
 
     private fun onMapResultFlow(result: Result<List<BeerDomain>>): Result<List<BeerView>> {
+        // Adicionamos a lista principal os novos valores retornados.
         liveData.value?.mapResultSuccess { mainList.addAll(it) }
 
         return result.mapResultSuccess {
@@ -54,7 +49,6 @@ class BeerListViewModel(
     }
 
     companion object {
-        const val DELAY = 3000L
         const val INITIAL_PAGE = 0
         const val PLUS_ONE = 1
     }
