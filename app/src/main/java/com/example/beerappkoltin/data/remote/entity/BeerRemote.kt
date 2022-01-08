@@ -9,6 +9,7 @@ data class BeerRemote(
     var firstBrewed: String?,
     var description: String?,
     var imageUrl: String?,
+    var attenuation_level: Double?
 ) {
     fun toModel() = BeerDomain(
         id = this.id,
@@ -17,5 +18,6 @@ data class BeerRemote(
         firstBrewed = this.firstBrewed,
         description = this.description,
         imageUrl = this.imageUrl,
+        attenuation_level = this.attenuation_level,
     )
 }

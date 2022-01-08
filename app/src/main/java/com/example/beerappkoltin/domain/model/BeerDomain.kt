@@ -9,6 +9,7 @@ data class BeerDomain(
     var firstBrewed: String?,
     var description: String?,
     var imageUrl: String?,
+    var attenuation_level: Double?,
 ) {
     fun toView() = BeerView(
         id = this.id,
@@ -17,5 +18,6 @@ data class BeerDomain(
         firstBrewed = this.firstBrewed,
         description = this.description,
         imageUrl = this.imageUrl,
+        attenuation_level = this.attenuation_level,
     )
 }

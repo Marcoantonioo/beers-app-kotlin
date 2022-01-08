@@ -7,4 +7,5 @@ data class BeerView(
     var firstBrewed: String?,
     var description: String?,
     var imageUrl: String?,
+    var attenuation_level: Double?,
 )
