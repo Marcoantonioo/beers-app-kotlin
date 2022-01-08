@@ -1,55 +1,65 @@
 package com.example.beerappkoltin.presentation.ui.beerList
 
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.beerappkoltin.core.commons.Result
 import com.example.beerappkoltin.domain.model.BeerDomain
 import com.example.beerappkoltin.domain.usecase.LoadAllBeerParams
 import com.example.beerappkoltin.domain.usecase.LoadAllPagedBeerUseCase
+import com.example.beerappkoltin.presentation.model.BeerListEvent
+import com.example.beerappkoltin.presentation.model.BeerListState
 import com.example.beerappkoltin.presentation.model.BeerView
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class BeerListViewModel(
     private val beerUseCase: LoadAllPagedBeerUseCase,
 ) : ViewModel() {
 
-    var currentPage = INITIAL_PAGE
-    var liveData: MutableLiveData<Result<List<BeerView>>> = MutableLiveData()
-    var mainList = mutableListOf<BeerView>()
+    private val _listState = MutableStateFlow(BeerListState())
+    val listState: StateFlow<BeerListState>
+        get() = _listState
 
-    fun loadMore() {
+    fun dispatchEvent(event: BeerListEvent) {
+        when (event) {
+            is BeerListEvent.LoadMore -> loadMore()
+        }
+    }
+
+    private fun loadMore() {
         viewModelScope.launch {
-            currentPage += PLUS_ONE
-            beerUseCase.execute(LoadAllBeerParams(page = currentPage))
+            val nextPage = _listState.value.currentPage + PLUS_ONE;
+            beerUseCase.execute(LoadAllBeerParams(page = nextPage))
                 .onStart {
-                    emit(Result.Loading)
-                }.map { result ->
-                    onMapResultFlow(result)
+                    onLoading(true)
+                }.onCompletion {
+                    onLoading(false)
                 }.collect {
-                    onSuccessCollect(it)
+                    it.fold(onFailure = ::onFailure, onSuccess = ::onSuccess)
                 }
         }
     }
 
-    private fun onMapResultFlow(result: Result<List<BeerDomain>>): Result<List<BeerView>> {
-        // Adicionamos a lista principal os novos valores retornados.
-        liveData.value?.mapResultSuccess { mainList.addAll(it) }
+    private fun onLoading(isLoading: Boolean) {
+        val isListEmpty = _listState.value.success.isEmpty()
 
-        return result.mapResultSuccess {
-            it.map { item -> item.toView() }
-        }
+        _listState.value = _listState.value.copy(isLoading = if (isListEmpty) isLoading else false)
+        _listState.value =
+            _listState.value.copy(isLoadingMore = if (!isListEmpty) isLoading else false)
     }
 
-    private fun onSuccessCollect(result: Result<List<BeerView>>) {
-        liveData.postValue(result)
+    private fun onFailure(error: Throwable) {
+        _listState.value = _listState.value.copy(error = error.message ?: "Error")
+    }
+
+    private fun onSuccess(beers: List<BeerDomain>) {
+        val oldList: List<BeerView> = _listState.value.success
+        val newList: List<BeerView> = beers.map { it.toView() }
+        val currentList = oldList + newList
+        val currentPage = _listState.value.currentPage + PLUS_ONE;
+        _listState.value = _listState.value.copy(success = currentList, currentPage = currentPage)
     }
 
     companion object {
-        const val INITIAL_PAGE = 0
         const val PLUS_ONE = 1
     }
 }

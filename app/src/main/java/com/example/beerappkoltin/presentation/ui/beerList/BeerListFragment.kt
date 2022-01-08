@@ -6,15 +6,17 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.example.beerappkoltin.R
-import com.example.beerappkoltin.core.commons.Result
-import com.example.beerappkoltin.core.commons.handleObserver
 import com.example.beerappkoltin.core.commons.setVisibilidadeVisibleView
-import com.example.beerappkoltin.core.commons.visible
 import com.example.beerappkoltin.databinding.FragmentBeerListBinding
+import com.example.beerappkoltin.presentation.model.BeerListEvent
+import com.example.beerappkoltin.presentation.model.BeerListState
 import com.example.beerappkoltin.presentation.model.BeerView
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class BeerListFragment : Fragment() {
@@ -22,8 +24,6 @@ class BeerListFragment : Fragment() {
 
     private lateinit var mBinding: FragmentBeerListBinding
     private lateinit var mAdapter: BeerListAdapter
-
-    private var isLoadingMore = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -36,11 +36,12 @@ class BeerListFragment : Fragment() {
 
         configRecyclerView()
 
-        mViewModel.liveData.handleObserver(viewLifecycleOwner) {
-            when (it) {
-                is Result.Success -> configViewWhenIsSuccess(it.data)
-                is Result.Loading -> configViewWhenIsLoading(isLoading = true)
-                is Result.Error -> configViewWhenIsError(it.error)
+        lifecycleScope.launch {
+            mViewModel.listState.collect { state ->
+                onStateLoading(state)
+                onStateError(state)
+                onStateSuccess(state)
+                onStateLoadMore(state)
             }
         }
 
@@ -51,36 +52,40 @@ class BeerListFragment : Fragment() {
 
     private fun configButtonTryAgain() {
         mBinding.btnTryAgain.setOnClickListener {
-            isLoadingMore = false
-            mViewModel.loadMore()
+            dispatchLoadMore()
         }
     }
 
-    private fun configViewWhenIsError(message: String) {
-        configViewWhenIsLoading(false)
-        mBinding.textViewError.text = message
-        setVisibilidadeVisibleView(mBinding.textViewError, true)
-        setVisibilidadeVisibleView(mBinding.btnTryAgain, true)
+    private fun dispatchLoadMore() {
+        mViewModel.dispatchEvent(BeerListEvent.LoadMore)
     }
 
-    private fun configViewWhenIsSuccess(list: List<BeerView>) {
-        configViewWhenIsLoading(false)
-        setVisibilidadeVisibleView(mBinding.progressBarLoadMore, false)
+    private fun onStateLoadMore(state: BeerListState) {
+        setVisibilidadeVisibleView(mBinding.progressBarLoadMore, state.isLoadingMore)
+    }
+
+    private fun onStateSuccess(state: BeerListState) {
         setVisibilidadeVisibleView(mBinding.textViewError, false)
         setVisibilidadeVisibleView(mBinding.btnTryAgain, false)
-        notifyAdapterWithNewList(list)
+        notifyAdapterWithNewList(state.success)
     }
 
-    private fun configViewWhenIsLoading(isLoading: Boolean) {
-        setVisibilidadeVisibleView(mBinding.progressBar, isLoading && !isLoadingMore)
-        setVisibilidadeVisibleView(mBinding.progressBarLoadMore, isLoadingMore)
-        setVisibilidadeVisibleView(mBinding.textViewError, !isLoading)
-        setVisibilidadeVisibleView(mBinding.btnTryAgain, !isLoading)
+    private fun onStateError(state: BeerListState) {
+        state.error?.run {
+            mBinding.textViewError.text = this
+            setVisibilidadeVisibleView(mBinding.textViewError, true)
+            setVisibilidadeVisibleView(mBinding.btnTryAgain, true)
+        }
+    }
+
+    private fun onStateLoading(state: BeerListState) {
+        setVisibilidadeVisibleView(mBinding.progressBar, state.isLoading)
+        setVisibilidadeVisibleView(mBinding.textViewError, !state.isLoading)
+        setVisibilidadeVisibleView(mBinding.btnTryAgain, !state.isLoading)
     }
 
     private fun notifyAdapterWithNewList(list: List<BeerView>) {
-        mViewModel.mainList.addAll(list)
-        mAdapter.list = mViewModel.mainList
+        mAdapter.list = list
         mAdapter.notifyDataSetChanged()
     }
 
@@ -97,8 +102,7 @@ class BeerListFragment : Fragment() {
         override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
             super.onScrollStateChanged(recyclerView, newState)
             if (!recyclerView.canScrollVertically(DIRECTION) && newState == RecyclerView.SCROLL_STATE_IDLE) {
-                isLoadingMore = true
-                mViewModel.loadMore()
+                dispatchLoadMore()
             }
         }
     }
@@ -107,9 +111,8 @@ class BeerListFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        if (mViewModel.mainList.isEmpty()) {
-            isLoadingMore = false
-            mViewModel.loadMore()
+        if (mViewModel.listState.value.success.isEmpty()) {
+            dispatchLoadMore()
         }
     }
 

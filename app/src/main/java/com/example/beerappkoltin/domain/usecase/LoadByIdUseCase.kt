@@ -2,7 +2,6 @@ package com.example.beerappkoltin.domain.usecase
 
 import com.example.beerappkoltin.core.commons.BaseUseCase
 import com.example.beerappkoltin.core.commons.Params
-import com.example.beerappkoltin.core.commons.Result
 import com.example.beerappkoltin.domain.model.BeerDomain
 import com.example.beerappkoltin.domain.repository.BeerRepository
 import kotlinx.coroutines.flow.Flow
